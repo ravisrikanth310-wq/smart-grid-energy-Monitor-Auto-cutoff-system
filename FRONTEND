@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Grid Dashboard</title>
+  <style>
+    :root {
+      --bg1: #0b1120;
+      --accent: #38bdf8;
+      --accent2: #818cf8;
+      --green: #4ade80;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --card: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.09);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: #e6ecf5;
+      padding: 22px 14px 40px;
+      background: var(--bg1);
+      min-height: 100vh;
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 600;
+      margin: 0 0 22px;
+      font-size: 22px;
+      color: #38bdf8;
+    }
+
+    .wrap {
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .pill.on {
+      background: rgba(74, 222, 128, 0.15);
+      color: var(--green);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+    }
+
+    .pill.standby {
+      background: rgba(251, 191, 36, 0.15);
+      color: var(--amber);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+    }
+
+    .pill.off {
+      background: rgba(248, 113, 113, 0.15);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+
+    .metric .val {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .metric .lbl {
+      font-size: 11px;
+      color: #8ea0c2;
+      margin-top: 4px;
+    }
+
+    .billrow {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px;
+      margin-bottom: 10px;
+    }
+
+    .billrow .amt {
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .btnrow {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .btn {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #04101f;
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.12);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>⚡ Smart Grid Dashboard</h2>
+
+    <!-- Total Usage Card -->
+    <div class="card">
+      <h3 style="margin: 0 0 12px">Total Usage (both sockets)</h3>
+      <div class="metrics">
+        <div class="metric">
+          <div class="val" id="totalVoltage">0V</div>
+          <div class="lbl">Voltage</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="totalCurrent">0.00A</div>
+          <div class="lbl">Current</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="totalPower">0W</div>
+          <div class="lbl">Power</div>
+        </div>
+      </div>
+      <div class="billrow">
+        <span>Total Units</span>
+        <span class="amt" id="totalKWh">0.0000 kWh</span>
+      </div>
+      <div class="billrow">
+        <span>Estimated Bill</span>
+        <span class="amt" id="totalBill">Rs 0.00</span>
+      </div>
+      <div class="metrics" style="grid-template-columns: repeat(2, 1fr); margin-top: 8px">
+        <div class="metric">
+          <div class="val" id="dailyKWh">0.000</div>
+          <div class="lbl">Daily kWh</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="monthlyKWh">0.000</div>
+          <div class="lbl">Monthly kWh</div>
+        </div>
+      </div>
+      <div class="btnrow">
+        <button onclick="resetStats()" class="btn btn-danger">Reset Stats</button>
+      </div>
+    </div>
+
+    <!-- Socket 1 Card -->
+    <div class="card" id="socket1Card">
+      <div class="status-row">
+        <h3 style="margin: 0">Socket 1</h3>
+        <span class="pill off" id="socket1Pill">
+          <span class="dot"></span>
+          <span id="socket1Status">OFF</span>
+        </span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="val" id="socket1Voltage">0V</div>
+          <div class="lbl">Voltage</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="socket1Current">0.00A</div>
+          <div class="lbl">Current</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="socket1Power">0W</div>
+          <div class="lbl">Power</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #5c6d8a; margin: -10px 0 12px">
+        Shared sensor &mdash; reflects combined draw, not this socket alone
+      </div>
+      <div class="btnrow">
+        <button onclick="toggleSocket(1)" class="btn btn-primary" id="socket1Btn">Turn ON</button>
+      </div>
+    </div>
+
+    <!-- Socket 2 Card -->
+    <div class="card" id="socket2Card">
+      <div class="status-row">
+        <h3 style="margin: 0">Socket 2</h3>
+        <span class="pill off" id="socket2Pill">
+          <span class="dot"></span>
+          <span id="socket2Status">OFF</span>
+        </span>
+      </div>
+      <div class="metrics">
+        <div class="metric">
+          <div class="val" id="socket2Voltage">0V</div>
+          <div class="lbl">Voltage</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="socket2Current">0.00A</div>
+          <div class="lbl">Current</div>
+        </div>
+        <div class="metric">
+          <div class="val" id="socket2Power">0W</div>
+          <div class="lbl">Power</div>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #5c6d8a; margin: -10px 0 12px">
+        Shared sensor &mdash; reflects combined draw, not this socket alone
+      </div>
+      <div class="btnrow">
+        <button onclick="toggleSocket(2)" class="btn btn-primary" id="socket2Btn">Turn ON</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State representation
+    const state = {
+      liveVoltage: 230.0,
+      liveCurrent: 0.0,
+      livePowerW: 0.0,
+      currentPresent: false,
+      totalKWh: 0.0,
+      dailyKWh: 0.0,
+      monthlyKWh: 0.0,
+      tariffRate: 6.0,
+      s1: { deviceState: false, autoShutoff: false },
+      s2: { deviceState: false, autoShutoff: false }
+    };
+
+    function getStatusLabel(socket) {
+      if (!socket.deviceState) return socket.autoShutoff ? "OFF (Auto-Idle)" : "OFF";
+      return state.currentPresent ? "ACTIVE" : "STANDBY";
+    }
+
+    function getStatusClass(socket) {
+      if (!socket.deviceState) return "off";
+      return state.currentPresent ? "on" : "standby";
+    }
+
+    function updateUI() {
+      // Total usage UI updates
+      const showLive = state.currentPresent;
+      document.getElementById("totalVoltage").innerText = (showLive ? state.liveVoltage : 0).toFixed(0) + "V";
+      document.getElementById("totalCurrent").innerText = (showLive ? state.liveCurrent : 0).toFixed(2) + "A";
+      document.getElementById("totalPower").innerText = (showLive ? state.livePowerW : 0).toFixed(0) + "W";
+      document.getElementById("totalKWh").innerText = state.totalKWh.toFixed(4) + " kWh";
+      document.getElementById("totalBill").innerText = "Rs " + (state.totalKWh * state.tariffRate).toFixed(2);
+      document.getElementById("dailyKWh").innerText = state.dailyKWh.toFixed(3);
+      document.getElementById("monthlyKWh").innerText = state.monthlyKWh.toFixed(3);
+
+      // Socket 1 Updates
+      const s1Class = getStatusClass(state.s1);
+      const s1ShowLive = state.s1.deviceState && state.currentPresent;
+      document.getElementById("socket1Pill").className = "pill " + s1Class;
+      document.getElementById("socket1Status").innerText = getStatusLabel(state.s1);
+      document.getElementById("socket1Btn").innerText = state.s1.deviceState ? "Turn OFF" : "Turn ON";
+      document.getElementById("socket1Voltage").innerText = (s1ShowLive ? state.liveVoltage : 0).toFixed(0) + "V";
+      document.getElementById("socket1Current").innerText = (s1ShowLive ? state.liveCurrent : 0).toFixed(2) + "A";
+      document.getElementById("socket1Power").innerText = (s1ShowLive ? state.livePowerW : 0).toFixed(0) + "W";
+
+      // Socket 2 Updates
+      const s2Class = getStatusClass(state.s2);
+      const s2ShowLive = state.s2.deviceState && state.currentPresent;
+      document.getElementById("socket2Pill").className = "pill " + s2Class;
+      document.getElementById("socket2Status").innerText = getStatusLabel(state.s2);
+      document.getElementById("socket2Btn").innerText = state.s2.deviceState ? "Turn OFF" : "Turn ON";
+      document.getElementById("socket2Voltage").innerText = (s2ShowLive ? state.liveVoltage : 0).toFixed(0) + "V";
+      document.getElementById("socket2Current").innerText = (s2ShowLive ? state.liveCurrent : 0).toFixed(2) + "A";
+      document.getElementById("socket2Power").innerText = (s2ShowLive ? state.livePowerW : 0).toFixed(0) + "W";
+    }
+
+    function toggleSocket(socketNum) {
+      // Connect to ESP32 endpoints: /toggle1 or /toggle2
+      fetch(`/toggle${socketNum}`)
+        .then(() => location.reload())
+        .catch(() => {
+          // Demo fallback logic if running standalone without backend
+          if (socketNum === 1) state.s1.deviceState = !state.s1.deviceState;
+          if (socketNum === 2) state.s2.deviceState = !state.s2.deviceState;
+          updateUI();
+        });
+    }
+
+    function resetStats() {
+      // Connect to ESP32 endpoint: /reset
+      fetch('/reset')
+        .then(() => location.reload())
+        .catch(() => {
+          state.totalKWh = 0;
+          state.dailyKWh = 0;
+          state.monthlyKWh = 0;
+          updateUI();
+        });
+    }
+
+    // Initial load
+    updateUI();
+  </script>
+</body>
+</html>
