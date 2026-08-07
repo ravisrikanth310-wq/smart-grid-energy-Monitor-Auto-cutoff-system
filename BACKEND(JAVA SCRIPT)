@@ -1,0 +1,115 @@
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
+const path = require('path');
+
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+// Middleware
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Persistent State Storage
+const state = {
+  liveVoltage: 230.0,
+  liveCurrent: 1.2,
+  livePowerW: 0.0,
+  currentPresent: false,
+  totalKWh: 0.0,
+  dailyKWh: 0.0,
+  monthlyKWh: 0.0,
+  tariffRate: 6.0,
+  s1: { deviceState: false, autoShutoff: false },
+  s2: { deviceState: false, autoShutoff: false }
+};
+
+// Recalculate total power based on connected load and active sockets
+function recomputePower() {
+  const isAnySocketOn = state.s1.deviceState || state.s2.deviceState;
+  
+  if (isAnySocketOn && state.liveCurrent > 0) {
+    state.currentPresent = true;
+    state.livePowerW = state.liveVoltage * state.liveCurrent;
+  } else {
+    state.currentPresent = false;
+    state.livePowerW = 0.0;
+  }
+}
+
+// Broadcast current state to all active WebSocket connections
+function broadcastState() {
+  const payload = JSON.stringify({ type: 'STATE_UPDATE', data: state });
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(payload);
+    }
+  });
+}
+
+// Interval to simulate continuous energy consumption accumulation (1 update/sec)
+setInterval(() => {
+  if (state.currentPresent && state.livePowerW > 0) {
+    const incrementalKWh = (state.livePowerW / 1000) / 3600;
+    state.totalKWh += incrementalKWh;
+    state.dailyKWh += incrementalKWh;
+    state.monthlyKWh += incrementalKWh;
+    broadcastState();
+  }
+}, 1000);
+
+// --- REST API ENDPOINTS ---
+
+// Fetch current state
+app.get('/api/status', (req, res) => {
+  res.json({ success: true, data: state });
+});
+
+// Endpoint for Socket 1 toggle
+app.get('/toggle1', (req, res) => {
+  state.s1.deviceState = !state.s1.deviceState;
+  recomputePower();
+  broadcastState();
+  res.json({ success: true, socket: 1, state: state.s1.deviceState });
+});
+
+// Endpoint for Socket 2 toggle
+app.get('/toggle2', (req, res) => {
+  state.s2.deviceState = !state.s2.deviceState;
+  recomputePower();
+  broadcastState();
+  res.json({ success: true, socket: 2, state: state.s2.deviceState });
+});
+
+// Reset energy consumption statistics
+app.get('/reset', (req, res) => {
+  state.totalKWh = 0.0;
+  state.dailyKWh = 0.0;
+  state.monthlyKWh = 0.0;
+  broadcastState();
+  res.json({ success: true, message: 'Stats reset successfully' });
+});
+
+// Telemetry endpoint for ESP32/Hardware readings
+app.post('/api/update-telemetry', (req, res) => {
+  const { voltage, current } = req.body;
+  if (typeof voltage === 'number') state.liveVoltage = voltage;
+  if (typeof current === 'number') state.liveCurrent = current;
+
+  recomputePower();
+  broadcastState();
+  res.json({ success: true, state });
+});
+
+// --- WEBSOCKET ENGINE ---
+wss.on('connection', (ws) => {
+  // Push immediate state as soon as a frontend connects
+  ws.send(JSON.stringify({ type: 'STATE_UPDATE', data: state }));
+});
+
+// Start Web Server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server listening on http://localhost:${PORT}`);
+});
